@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 export function GameCard() {
   return (
     <article className="border-2 border-[var(--foreground)] bg-[var(--panel)] shadow-[5px_5px_0_var(--foreground)]">
@@ -31,12 +29,9 @@ export function GameCard() {
           who the thief is.
         </p>
 
-        <Link
-          href="/"
-          className="inline-flex min-h-11 items-center justify-center border-2 border-[var(--foreground)] px-4 text-sm font-extrabold transition-transform hover:-translate-y-0.5"
-        >
+        <span className="inline-flex min-h-10 items-center border-2 border-[var(--line)] px-3 text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--muted)]">
           Coming first
-        </Link>
+        </span>
       </div>
     </article>
   );
