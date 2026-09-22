@@ -77,6 +77,14 @@ export function LoginForm() {
     });
 
     if (authError) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[Buuni auth] Login failed", {
+          message: authError.message,
+          code: authError.code,
+          status: authError.status,
+        });
+      }
+
       setLoading(false);
       setError(friendlyAuthError(authError.message, "login"));
       return;
@@ -199,6 +207,14 @@ export function SignupForm() {
     });
 
     if (authError) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[Buuni auth] Signup failed", {
+          message: authError.message,
+          code: authError.code,
+          status: authError.status,
+        });
+      }
+
       setLoading(false);
       setError(friendlyAuthError(authError.message, "signup"));
       return;
