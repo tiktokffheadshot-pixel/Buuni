@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { RoleReveal } from "@/components/role-reveal";
 import { createClient } from "@/lib/supabase/server";
 
 type GameRow = {
@@ -177,10 +178,7 @@ export default async function ThiefPolicePeopleRoomPage({
           </div>
         </div>
 
-        <div className="mt-7 border-l-4 border-[var(--accent)] bg-[var(--background)] px-4 py-4">
-          <p className="font-black">Your role</p>
-          <p className="mt-1 text-lg font-black">{roleLabels[role]}</p>
-        </div>
+        <RoleReveal label={roleLabels[role]} />
       </section>
     </div>
   );
