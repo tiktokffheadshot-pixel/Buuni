@@ -59,10 +59,6 @@ export function LoginForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (signupInFlight.current) {
-      return;
-    }
-
     setError("");
 
     const normalizedEmail = email.trim().toLowerCase();
@@ -169,6 +165,11 @@ export function SignupForm() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (signupInFlight.current) {
+      return;
+    }
+
     setError("");
     setNotice("");
 
