@@ -1,22 +1,8 @@
 import Link from "next/link";
 
-import { createClient } from "@/lib/supabase/server";
-import { CreateRoomButton, JoinRoomForm } from "@/components/room-buttons";
 import { FeatureList } from "@/components/feature-list";
 
-export const dynamic = "force-dynamic";
-
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ room_error?: string }>;
-}) {
-  const { room_error: roomError } = await searchParams;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+export default function HomePage() {
   return (
     <div className="min-h-[calc(100vh-4rem)]">
       <section className="mx-auto grid w-full max-w-6xl gap-10 px-4 pb-10 pt-10 sm:px-6 sm:pb-14 sm:pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-16">
@@ -34,50 +20,26 @@ export default async function HomePage({
             conversation and competition.
           </p>
 
-          {user ? (
-            <section className="mt-8 border-2 border-[var(--foreground)] bg-[var(--panel)] p-5 shadow-[5px_5px_0_var(--foreground)]">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--accent-dark)]">
-                Multiplayer
-              </p>
-              <h2 className="mt-2 text-2xl font-black">Start a room</h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                Create a room for up to 4 players, or join a friend with their room code.
-              </p>
-
-              {roomError ? (
-                <p className="mt-4 border-2 border-[var(--accent)] bg-[#fff4ef] px-3 py-3 text-sm font-semibold leading-6 text-[var(--accent-dark)]" role="alert">
-                  {roomError === "invalid"
-                    ? "Enter a valid 6-character room code."
-                    : roomError}
-                </p>
-              ) : null}
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_1.35fr] sm:items-center">
-                <CreateRoomButton />
-                <JoinRoomForm />
-              </div>
-            </section>
-          ) : (
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/login"
-                className="inline-flex min-h-12 items-center justify-center border-2 border-[var(--foreground)] bg-[var(--accent)] px-6 font-extrabold text-white shadow-[4px_4px_0_var(--foreground)] transition-transform hover:-translate-y-0.5"
-              >
-                Log in to play
-              </Link>
-              <Link
-                href="/signup"
-                className="inline-flex min-h-12 items-center justify-center border-2 border-[var(--foreground)] bg-[var(--panel)] px-6 font-extrabold transition-transform hover:-translate-y-0.5"
-              >
-                Create account
-              </Link>
-            </div>
-          )}
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/games"
+              className="inline-flex min-h-12 items-center justify-center border-2 border-[var(--foreground)] bg-[var(--accent)] px-6 font-extrabold text-white shadow-[4px_4px_0_var(--foreground)] transition-transform hover:-translate-y-0.5"
+            >
+              Pick a game
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex min-h-12 items-center justify-center border-2 border-[var(--foreground)] bg-[var(--panel)] px-6 font-extrabold transition-transform hover:-translate-y-0.5"
+            >
+              Log in
+            </Link>
+          </div>
         </div>
 
-        <div
+        <Link
+          href="/games"
           id="game"
-          className="relative border-2 border-[var(--foreground)] bg-[var(--panel)] p-5 shadow-[6px_6px_0_var(--foreground)] sm:p-7"
+          className="relative block border-2 border-[var(--foreground)] bg-[var(--panel)] p-5 shadow-[6px_6px_0_var(--foreground)] transition-transform hover:-translate-y-0.5 sm:p-7"
         >
           <div className="absolute right-4 top-4 border border-[var(--line)] bg-[var(--background)] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em]">
             First game
@@ -105,12 +67,17 @@ export default async function HomePage({
               </h2>
             </div>
 
-            <p className="mt-8 max-w-md text-base leading-7 text-[var(--muted)]">
-              A social game where 4 players play, talk, investigate, and
-              discover who the thief is.
-            </p>
+            <div>
+              <p className="mt-8 max-w-md text-base leading-7 text-[var(--muted)]">
+                A social game where 4 players play, talk, investigate, and
+                discover who the thief is.
+              </p>
+              <span className="mt-5 inline-flex min-h-11 items-center border-2 border-[var(--foreground)] bg-[var(--background)] px-4 font-black">
+                Pick this game
+              </span>
+            </div>
           </div>
-        </div>
+        </Link>
       </section>
 
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
