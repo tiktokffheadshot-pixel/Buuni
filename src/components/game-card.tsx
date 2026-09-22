@@ -1,10 +1,15 @@
+import Link from "next/link";
+
 export function GameCard() {
   return (
-    <article className="border-2 border-[var(--foreground)] bg-[var(--panel)] shadow-[5px_5px_0_var(--foreground)]">
+    <Link
+      href="/games/thief-police-people"
+      className="block border-2 border-[var(--foreground)] bg-[var(--panel)] shadow-[5px_5px_0_var(--foreground)] transition-transform hover:-translate-y-0.5"
+    >
       <div className="flex min-h-48 items-end justify-between border-b-2 border-[var(--foreground)] bg-[var(--green)] p-5 text-white">
         <div>
           <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-white/70">
-            Coming first
+            First game
           </p>
           <div className="flex items-center gap-3">
             <span className="grid size-12 place-items-center border border-white/30 bg-white/10 text-2xl">
@@ -18,9 +23,12 @@ export function GameCard() {
       </div>
 
       <div className="space-y-5 p-5">
-        <div className="flex items-center gap-2 text-sm font-bold">
+        <div className="flex flex-wrap items-center gap-2 text-sm font-bold">
           <span className="border border-[var(--line)] bg-[var(--background)] px-2 py-1">
             4 Players
+          </span>
+          <span className="border border-[var(--line)] bg-[var(--background)] px-2 py-1">
+            1 Police · 1 Thief · 2 People
           </span>
         </div>
 
@@ -29,10 +37,10 @@ export function GameCard() {
           who the thief is.
         </p>
 
-        <span className="inline-flex min-h-10 items-center border-2 border-[var(--line)] px-3 text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--muted)]">
-          Coming first
+        <span className="inline-flex min-h-10 items-center border-2 border-[var(--foreground)] bg-[var(--background)] px-3 text-xs font-extrabold uppercase tracking-[0.12em]">
+          Play this game
         </span>
       </div>
-    </article>
+    </Link>
   );
 }
