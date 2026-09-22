@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { leaveRoom, setReady } from "@/app/room/actions";
+import { leaveRoom, setReady, startRoom } from "@/app/room/actions";
 import { createClient } from "@/lib/supabase/server";
 
 type RoomPlayer = {
@@ -49,7 +49,11 @@ export default async function RoomPage({
   if (error) {
     const message = error.message?.toLowerCase() ?? "";
 
-    if (message.includes("expired or is no longer available")) {
+    if (message.includes("room is already playing")) {
+      redirect("/games/thief-police-people/room/" + code);
+    }
+
+    if (message.includes("room is finished") || message.includes("no longer available")) {
       return (
         <div className="mx-auto w-full max-w-2xl px-4 py-12 sm:px-6 sm:py-16">
           <section className="border-2 border-[var(--foreground)] bg-[var(--panel)] p-6 shadow-[6px_6px_0_var(--foreground)] sm:p-8">
@@ -89,7 +93,9 @@ export default async function RoomPage({
     is_ready: row.is_ready,
     is_host: row.is_host,
   }));
+  const currentPlayer = players.find((player) => player.user_id === user.id);
   const allReady = players.length === 4 && players.every((player) => player.is_ready);
+  const currentPlayerIsHost = currentPlayer?.is_host ?? false;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
@@ -169,20 +175,39 @@ export default async function RoomPage({
           </p>
           <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
             {allReady
-              ? "The game start step will be added next. No game mechanics are active yet."
+              ? currentPlayerIsHost
+                ? "You can start the game when everyone is ready."
+                : "The host can start the game when everyone is ready."
               : "You can refresh this page to check for new players or readiness changes."}
           </p>
         </div>
 
+        {currentPlayerIsHost ? (
+          <form action={startRoom} className="mt-6">
+            <input type="hidden" name="code" value={first.room_code} />
+            <button
+              type="submit"
+              disabled={!allReady}
+              className="min-h-12 w-full border-2 border-[var(--foreground)] bg-[var(--accent)] px-5 font-black text-white shadow-[4px_4px_0_var(--foreground)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
+            >
+              Start Game
+            </button>
+          </form>
+        ) : null}
+
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <form action={setReady} className="flex-1">
             <input type="hidden" name="code" value={first.room_code} />
-            <input type="hidden" name="ready" value={rows.find((row) => row.user_id === user.id)?.is_ready ? "false" : "true"} />
+            <input
+              type="hidden"
+              name="ready"
+              value={currentPlayer?.is_ready ? "false" : "true"}
+            />
             <button
               type="submit"
               className="min-h-12 w-full border-2 border-[var(--foreground)] bg-[var(--green)] px-5 font-black text-white shadow-[4px_4px_0_var(--foreground)] transition-transform hover:-translate-y-0.5"
             >
-              {rows.find((row) => row.user_id === user.id)?.is_ready ? "Mark Not Ready" : "Ready Up"}
+              {currentPlayer?.is_ready ? "Mark Not Ready" : "Ready Up"}
             </button>
           </form>
           <Link
