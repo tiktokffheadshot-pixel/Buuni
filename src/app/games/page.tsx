@@ -11,8 +11,8 @@ export default function GamesPage() {
           Pick a game.
         </h1>
         <p className="mt-4 text-base leading-7 text-[var(--muted)]">
-          Buuni is starting with one social game. More can live here later
-          without changing the way your account works.
+          Buuni is starting with one social game. Each game can have its own
+          entry flow without changing the shared account system.
         </p>
       </div>
 
