@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
@@ -13,7 +13,10 @@ function inputClassName() {
   return "mt-2 min-h-12 w-full border-2 border-[var(--foreground)] bg-[var(--background)] px-3 text-base outline-none transition-shadow placeholder:text-[var(--muted)] focus:shadow-[3px_3px_0_var(--accent)]";
 }
 
-function friendlyAuthError(message: string, mode: "login" | "signup") {
+function friendlyAuthError(message: string, mode: "login" | "signup", code?: string | null) {
+  if (mode === "signup" && code === "over_email_send_rate_limit") {
+    return "Email limit reached. Please wait before creating another account, then try again.";
+  }
   const lower = message.toLowerCase();
 
   if (lower.includes("rate limit") || lower.includes("too many")) {
@@ -42,7 +45,7 @@ function friendlyAuthError(message: string, mode: "login" | "signup") {
   }
 
   return mode === "signup"
-    ? "We could not create your account. Please check your details and try again."
+    ? message
     : "We could not log you in. Please check your details and try again.";
 }
 
@@ -55,6 +58,11 @@ export function LoginForm() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (signupInFlight.current) {
+      return;
+    }
+
     setError("");
 
     const normalizedEmail = email.trim().toLowerCase();
@@ -82,11 +90,12 @@ export function LoginForm() {
           message: authError.message,
           code: authError.code,
           status: authError.status,
+          name: authError.name,
         });
       }
 
       setLoading(false);
-      setError(friendlyAuthError(authError.message, "login"));
+      setError(friendlyAuthError(authError.message, "login", authError.code));
       return;
     }
 
@@ -149,6 +158,7 @@ export function LoginForm() {
 
 export function SignupForm() {
   const router = useRouter();
+  const signupInFlight = useRef(false);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -194,6 +204,7 @@ export function SignupForm() {
       return;
     }
 
+    signupInFlight.current = true;
     setLoading(true);
     const supabase = createClient();
     const { data, error: authError } = await supabase.auth.signUp({
@@ -212,15 +223,18 @@ export function SignupForm() {
           message: authError.message,
           code: authError.code,
           status: authError.status,
+          name: authError.name,
         });
       }
 
+      signupInFlight.current = false;
       setLoading(false);
-      setError(friendlyAuthError(authError.message, "signup"));
+      setError(friendlyAuthError(authError.message, "signup", authError.code));
       return;
     }
 
     if (!data.session) {
+      signupInFlight.current = false;
       setLoading(false);
       setNotice("Your account was created. Check your email to confirm it, then log in.");
       return;
