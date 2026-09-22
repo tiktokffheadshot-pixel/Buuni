@@ -1,15 +1,37 @@
 import Link from "next/link";
 
 import { FeatureList } from "@/components/feature-list";
+import { createClient } from "@/lib/supabase/server";
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let username: string | null = null;
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    username = profile?.username ?? null;
+  }
+
   return (
     <div className="min-h-[calc(100vh-4rem)]">
       <section className="mx-auto grid w-full max-w-6xl gap-10 px-4 pb-10 pt-10 sm:px-6 sm:pb-14 sm:pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-16">
         <div>
-          <p className="mb-5 inline-flex border border-[var(--line)] bg-[var(--panel)] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-[var(--muted)]">
-            Somali-first social gaming
-          </p>
+          {user ? (
+            <p className="mb-5 inline-flex border border-[var(--line)] bg-[var(--panel)] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-[var(--muted)]">
+              Welcome back{username ? `, @${username}` : ""}.
+            </p>
+          ) : null}
 
           <h1 className="max-w-xl text-5xl font-black tracking-[-0.045em] sm:text-6xl">
             Play. Talk. Compete.
@@ -27,12 +49,14 @@ export default function HomePage() {
             >
               Pick a game
             </Link>
-            <Link
-              href="/login"
-              className="inline-flex min-h-12 items-center justify-center border-2 border-[var(--foreground)] bg-[var(--panel)] px-6 font-extrabold transition-transform hover:-translate-y-0.5"
-            >
-              Log in
-            </Link>
+            {!user ? (
+              <Link
+                href="/login"
+                className="inline-flex min-h-12 items-center justify-center border-2 border-[var(--foreground)] bg-[var(--panel)] px-6 font-extrabold transition-transform hover:-translate-y-0.5"
+              >
+                Log in
+              </Link>
+            ) : null}
           </div>
         </div>
 
