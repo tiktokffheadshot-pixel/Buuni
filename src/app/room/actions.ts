@@ -15,7 +15,7 @@ function roomErrorMessage(message: string) {
 
   if (lower.includes("room not found")) return "Room not found. Check the code and try again.";
   if (lower.includes("room is full")) return "That room is full.";
-  if (lower.includes("no longer accepting")) return "That room is no longer accepting players.";
+  if (lower.includes("expired or is no longer available") || lower.includes("no longer accepting")) return "Room expired or is no longer available.";
   if (lower.includes("not in this room")) return "You are not in this room.";
   return message;
 }

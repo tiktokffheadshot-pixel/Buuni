@@ -46,7 +46,38 @@ export default async function RoomPage({
     p_code: code,
   });
 
-  if (error || !data?.length) {
+  if (error) {
+    const message = error.message?.toLowerCase() ?? "";
+
+    if (message.includes("expired or is no longer available")) {
+      return (
+        <div className="mx-auto w-full max-w-2xl px-4 py-12 sm:px-6 sm:py-16">
+          <section className="border-2 border-[var(--foreground)] bg-[var(--panel)] p-6 shadow-[6px_6px_0_var(--foreground)] sm:p-8">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--accent-dark)]">
+              Room unavailable
+            </p>
+            <h1 className="mt-2 text-3xl font-black tracking-tight">
+              Room expired or is no longer available.
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+              This room is no longer an active waiting lobby. You can return to
+              the game lobby to create a new room or enter another code.
+            </p>
+            <Link
+              href="/games/thief-police-people"
+              className="mt-6 inline-flex min-h-12 items-center justify-center border-2 border-[var(--foreground)] bg-[var(--accent)] px-5 font-black text-white shadow-[4px_4px_0_var(--foreground)]"
+            >
+              Back to game lobby
+            </Link>
+          </section>
+        </div>
+      );
+    }
+
+    notFound();
+  }
+
+  if (!data?.length) {
     notFound();
   }
 
