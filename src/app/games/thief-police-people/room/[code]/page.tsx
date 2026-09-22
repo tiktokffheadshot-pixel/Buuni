@@ -15,6 +15,14 @@ type GameRow = {
   is_host: boolean;
 };
 
+type GameRole = "police" | "thief" | "people";
+
+const roleLabels: Record<GameRole, string> = {
+  police: "Police 👮",
+  thief: "Thief 🥷",
+  people: "People 👥",
+};
+
 export const dynamic = "force-dynamic";
 
 export default async function ThiefPolicePeopleRoomPage({
@@ -84,6 +92,55 @@ export default async function ThiefPolicePeopleRoomPage({
 
   const rows = data as GameRow[];
 
+  const { data: roleData, error: roleError } = await supabase.rpc(
+    "get_my_game_role",
+    { p_code: code },
+  );
+
+  if (roleError) {
+    const message = roleError.message?.toLowerCase() ?? "";
+
+    if (message.includes("room is still waiting")) {
+      redirect("/room/" + code);
+    }
+
+    if (message.includes("room is finished")) {
+      return (
+        <div className="mx-auto w-full max-w-2xl px-4 py-12 sm:px-6 sm:py-16">
+          <section className="border-2 border-[var(--foreground)] bg-[var(--panel)] p-6 shadow-[6px_6px_0_var(--foreground)] sm:p-8">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--accent-dark)]">
+              Game unavailable
+            </p>
+            <h1 className="mt-2 text-3xl font-black tracking-tight">
+              This game has finished.
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+              The room is no longer an active game.
+            </p>
+            <Link
+              href="/games/thief-police-people"
+              className="mt-6 inline-flex min-h-12 items-center justify-center border-2 border-[var(--foreground)] bg-[var(--accent)] px-5 font-black text-white shadow-[4px_4px_0_var(--foreground)]"
+            >
+              Back to game lobby
+            </Link>
+          </section>
+        </div>
+      );
+    }
+
+    if (message.includes("not in this room")) {
+      notFound();
+    }
+
+    notFound();
+  }
+
+  const role = roleData?.[0]?.role as GameRole | undefined;
+
+  if (!role || !(role in roleLabels)) {
+    notFound();
+  }
+
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
       <section className="border-2 border-[var(--foreground)] bg-[var(--panel)] p-5 shadow-[6px_6px_0_var(--foreground)] sm:p-8">
@@ -121,11 +178,8 @@ export default async function ThiefPolicePeopleRoomPage({
         </div>
 
         <div className="mt-7 border-l-4 border-[var(--accent)] bg-[var(--background)] px-4 py-4">
-          <p className="font-black">The game has started.</p>
-          <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-            The first game mechanic will be added in the next step. No roles or
-            gameplay are active yet.
-          </p>
+          <p className="font-black">Your role</p>
+          <p className="mt-1 text-lg font-black">{roleLabels[role]}</p>
         </div>
       </section>
     </div>
