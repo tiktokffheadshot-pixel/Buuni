@@ -1,5 +1,7 @@
 # Buuni Step 3 — Room System Foundation
 
+**Status:** fixed and validated against the connected Supabase project at the database/RPC level. No Step 4 or game mechanics are included.
+
 Step 3 adds the Supabase-backed multiplayer room foundation without implementing game mechanics or Realtime.
 
 ## Database
