@@ -1,10 +1,25 @@
 import Link from "next/link";
+
+import { createClient } from "@/lib/supabase/server";
+import { CreateRoomButton, JoinRoomForm } from "@/components/room-buttons";
 import { FeatureList } from "@/components/feature-list";
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ room_error?: string }>;
+}) {
+  const { room_error: roomError } = await searchParams;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <div className="min-h-[calc(100vh-4rem)]">
-      <section className="mx-auto grid w-full max-w-6xl gap-10 px-4 pb-14 pt-10 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-16">
+      <section className="mx-auto grid w-full max-w-6xl gap-10 px-4 pb-10 pt-10 sm:px-6 sm:pb-14 sm:pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-16">
         <div>
           <p className="mb-5 inline-flex border border-[var(--line)] bg-[var(--panel)] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-[var(--muted)]">
             Somali-first social gaming
@@ -19,20 +34,45 @@ export default function HomePage() {
             conversation and competition.
           </p>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="#game"
-              className="inline-flex min-h-12 items-center justify-center border-2 border-[var(--foreground)] bg-[var(--accent)] px-6 font-extrabold text-white shadow-[4px_4px_0_var(--foreground)] transition-transform hover:-translate-y-0.5"
-            >
-              Play Now
-            </Link>
-            <Link
-              href="#how-it-works"
-              className="inline-flex min-h-12 items-center justify-center border-2 border-[var(--foreground)] bg-[var(--panel)] px-6 font-extrabold transition-transform hover:-translate-y-0.5"
-            >
-              How It Works
-            </Link>
-          </div>
+          {user ? (
+            <section className="mt-8 border-2 border-[var(--foreground)] bg-[var(--panel)] p-5 shadow-[5px_5px_0_var(--foreground)]">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--accent-dark)]">
+                Multiplayer
+              </p>
+              <h2 className="mt-2 text-2xl font-black">Start a room</h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                Create a room for up to 4 players, or join a friend with their room code.
+              </p>
+
+              {roomError ? (
+                <p className="mt-4 border-2 border-[var(--accent)] bg-[#fff4ef] px-3 py-3 text-sm font-semibold leading-6 text-[var(--accent-dark)]" role="alert">
+                  {roomError === "invalid"
+                    ? "Enter a valid 6-character room code."
+                    : roomError}
+                </p>
+              ) : null}
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_1.35fr] sm:items-center">
+                <CreateRoomButton />
+                <JoinRoomForm />
+              </div>
+            </section>
+          ) : (
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/login"
+                className="inline-flex min-h-12 items-center justify-center border-2 border-[var(--foreground)] bg-[var(--accent)] px-6 font-extrabold text-white shadow-[4px_4px_0_var(--foreground)] transition-transform hover:-translate-y-0.5"
+              >
+                Log in to play
+              </Link>
+              <Link
+                href="/signup"
+                className="inline-flex min-h-12 items-center justify-center border-2 border-[var(--foreground)] bg-[var(--panel)] px-6 font-extrabold transition-transform hover:-translate-y-0.5"
+              >
+                Create account
+              </Link>
+            </div>
+          )}
         </div>
 
         <div
