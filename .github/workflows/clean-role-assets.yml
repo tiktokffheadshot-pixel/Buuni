@@ -1,0 +1,149 @@
+name: Clean Step 5.1 role assets
+
+on:
+  push:
+    branches:
+      - step-5-1-clean-role-assets
+
+permissions:
+  contents: write
+
+jobs:
+  clean:
+    if: "!contains(github.event.head_commit.message, '[clean-role-assets-final]')"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install image tooling
+        run: python -m pip install --disable-pip-version-check pillow numpy opencv-python-headless
+
+      - name: Clean role artwork
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          import cv2
+          import numpy as np
+          from PIL import Image
+
+          root = Path("public/images/roles")
+          jobs = {
+              "police": (root / "buuni-police.png", (230, 55, 845, 735)),
+              "thief": (root / "buuni-thief.png", (135, 205, 805, 900)),
+              "people": (root / "buuni-people.png", (235, 245, 945, 935)),
+          }
+
+          for role, (source, bounds) in jobs.items():
+              image = Image.open(source).convert("RGBA")
+              rgba = np.array(image)
+              x0, y0, x1, y1 = bounds
+              crop = rgba[y0:y1, x0:x1].copy()
+              rgb = crop[:, :, :3]
+
+              near_black = np.all(rgb <= 42, axis=2).astype(np.uint8)
+              flood = near_black.copy()
+              flood_mask = np.zeros((near_black.shape[0] + 2, near_black.shape[1] + 2), dtype=np.uint8)
+              h, w = near_black.shape
+
+              for x in range(w):
+                  if flood[0, x]:
+                      cv2.floodFill(flood, flood_mask, (x, 0), 2)
+                  if flood[h - 1, x]:
+                      cv2.floodFill(flood, flood_mask, (x, h - 1), 2)
+              for y in range(h):
+                  if flood[y, 0]:
+                      cv2.floodFill(flood, flood_mask, (0, y), 2)
+                  if flood[y, w - 1]:
+                      cv2.floodFill(flood, flood_mask, (w - 1, y), 2)
+
+              alpha = crop[:, :, 3].copy()
+              alpha[flood == 2] = 0
+              hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
+
+              if role == "police":
+                  red = (((hsv[:, :, 0] <= 12) | (hsv[:, :, 0] >= 170)) & (hsv[:, :, 1] > 110) & (hsv[:, :, 2] > 80))
+                  yellow = ((hsv[:, :, 0] >= 10) & (hsv[:, :, 0] <= 40) & (hsv[:, :, 1] > 90) & (hsv[:, :, 2] > 100))
+                  red_region = np.zeros((h, w), dtype=bool)
+                  red_region[390:, :230] = True
+                  yellow_region = np.zeros((h, w), dtype=bool)
+                  yellow_region[430:, 470:] = True
+                  alpha[red & red_region] = 0
+                  alpha[yellow & yellow_region] = 0
+
+              elif role == "thief":
+                  blue = ((hsv[:, :, 0] >= 90) & (hsv[:, :, 0] <= 140) & (hsv[:, :, 1] > 80) & (hsv[:, :, 2] > 70))
+                  blue_region = np.zeros((h, w), dtype=bool)
+                  blue_region[:230, 520:] = True
+                  alpha[blue & blue_region] = 0
+
+              else:
+                  blue_or_yellow = (
+                      ((hsv[:, :, 0] >= 90) & (hsv[:, :, 0] <= 140) & (hsv[:, :, 1] > 70))
+                      | ((hsv[:, :, 0] >= 10) & (hsv[:, :, 0] <= 45) & (hsv[:, :, 1] > 90) & (hsv[:, :, 2] > 90))
+                  )
+                  corner = np.zeros((h, w), dtype=bool)
+                  corner[:150, :190] = True
+                  alpha[blue_or_yellow & corner] = 0
+
+              mask = (alpha > 12).astype(np.uint8)
+              count, labels, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
+              if count <= 1:
+                  raise RuntimeError(f"No artwork component found for {role}.")
+              main_label = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+              alpha[labels != main_label] = 0
+
+              ys, xs = np.where(alpha > 12)
+              if len(xs) == 0:
+                  raise RuntimeError(f"Cleaned artwork is empty for {role}.")
+
+              bx0, bx1 = int(xs.min()), int(xs.max()) + 1
+              by0, by1 = int(ys.min()), int(ys.max()) + 1
+              pad = 14
+              bx0 = max(0, bx0 - pad)
+              by0 = max(0, by0 - pad)
+              bx1 = min(w, bx1 + pad)
+              by1 = min(h, by1 + pad)
+
+              output = Image.fromarray(np.dstack((rgb, alpha))[by0:by1, bx0:bx1], "RGBA")
+              if max(output.size) > 900:
+                  scale = 900 / max(output.size)
+                  output = output.resize(
+                      (max(1, round(output.width * scale)), max(1, round(output.height * scale))),
+                      Image.Resampling.LANCZOS,
+                  )
+
+              destination = root / f"{role}.png"
+              output.save(destination, format="PNG", optimize=True)
+              check = Image.open(destination).convert("RGBA")
+              check_alpha = np.array(check)[:, :, 3]
+              if not np.any(check_alpha == 0) or not np.any(check_alpha > 0):
+                  raise RuntimeError(f"Transparency verification failed for {role}.")
+              print(f"{role}: {check.size}")
+
+          print("Role assets cleaned and verified.")
+          PY
+
+      - name: Validate
+        run: |
+          npm install --no-audit --no-fund
+          npm run lint
+          npm run typecheck
+          npm run build
+
+      - name: Commit cleaned assets on branch
+        run: |
+          rm -f .github/workflows/clean-role-assets.yml
+          rm -f package-lock.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/images/roles/police.png public/images/roles/thief.png public/images/roles/people.png
+          git commit -m "Clean Step 5.1 role artwork [clean-role-assets-final]"
+          git push origin HEAD:step-5-1-clean-role-assets
