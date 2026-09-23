@@ -113,6 +113,21 @@ jobs:
               by1 = min(h, by1 + pad)
 
               output = Image.fromarray(np.dstack((rgb, alpha))[by0:by1, bx0:bx1], "RGBA")
+
+              # Final visual guardrails on the cropped canvas remove the small
+              # neighboring-role slivers that overlap the source artwork edges.
+              out_rgba = np.array(output)
+              oh, ow = out_rgba.shape[:2]
+              out_alpha = out_rgba[:, :, 3]
+              if role == "police":
+                  out_alpha[int(oh * 0.78):, :int(ow * 0.08)] = 0
+                  out_alpha[int(oh * 0.76):, int(ow * 0.90):] = 0
+              elif role == "thief":
+                  out_alpha[:int(oh * 0.28), int(ow * 0.84):] = 0
+              else:
+                  out_alpha[:int(oh * 0.18), :int(ow * 0.22)] = 0
+              output = Image.fromarray(out_rgba, "RGBA")
+
               if max(output.size) > 900:
                   scale = 900 / max(output.size)
                   output = output.resize(
