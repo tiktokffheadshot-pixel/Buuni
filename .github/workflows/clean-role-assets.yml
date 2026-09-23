@@ -120,12 +120,12 @@ jobs:
               oh, ow = out_rgba.shape[:2]
               out_alpha = out_rgba[:, :, 3]
               if role == "police":
-                  out_alpha[int(oh * 0.78):, :int(ow * 0.08)] = 0
-                  out_alpha[int(oh * 0.76):, int(ow * 0.90):] = 0
+                  out_alpha[int(oh * 0.90):, :int(ow * 0.05)] = 0
+                  out_alpha[int(oh * 0.90):, int(ow * 0.95):] = 0
               elif role == "thief":
-                  out_alpha[:int(oh * 0.28), int(ow * 0.84):] = 0
+                  out_alpha[:int(oh * 0.08), int(ow * 0.90):] = 0
               else:
-                  out_alpha[:int(oh * 0.18), :int(ow * 0.22)] = 0
+                  out_alpha[:int(oh * 0.10), :int(ow * 0.16)] = 0
               output = Image.fromarray(out_rgba, "RGBA")
 
               if max(output.size) > 900:
