@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { RoleReveal } from "@/components/role-reveal";
+import { RoleReveal, type GameRole } from "@/components/role-reveal";
 import { createClient } from "@/lib/supabase/server";
 
 type GameRow = {
@@ -17,12 +17,6 @@ type GameRow = {
 };
 
 type GameRole = "police" | "thief" | "people";
-
-const roleLabels: Record<GameRole, string> = {
-  police: "Police 👮",
-  thief: "Thief 🥷",
-  people: "People 👥",
-};
 
 export const dynamic = "force-dynamic";
 
@@ -136,11 +130,17 @@ export default async function ThiefPolicePeopleRoomPage({
     notFound();
   }
 
-  const role = roleData?.[0]?.role as GameRole | undefined;
+  const roleValue: unknown = roleData?.[0]?.role;
 
-  if (!role || !(role in roleLabels)) {
-    notFound();
+  if (
+    roleValue !== "police" &&
+    roleValue !== "thief" &&
+    roleValue !== "people"
+  ) {
+    throw new Error("Invalid game role returned by get_my_game_role.");
   }
+
+  const role: GameRole = roleValue;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
@@ -178,7 +178,7 @@ export default async function ThiefPolicePeopleRoomPage({
           </div>
         </div>
 
-        <RoleReveal label={roleLabels[role]} />
+        <RoleReveal role={role} />
       </section>
     </div>
   );

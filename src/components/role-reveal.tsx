@@ -58,7 +58,7 @@ const ROLE_REVEAL_STYLES = `
 }
 `;
 
-type GameRole = "police" | "thief" | "people";
+export type GameRole = "police" | "thief" | "people";
 
 const ROLE_CONFIG: Record<
   GameRole,
@@ -95,18 +95,7 @@ const ROLE_CONFIG: Record<
 
 const PARTICLES = Array.from({ length: 14 }, (_, index) => index);
 
-function getRole(label: string): GameRole {
-  const value = label.trim().split(/\\s+/)[0].toLowerCase();
-
-  if (value === "thief" || value === "police" || value === "people") {
-    return value;
-  }
-
-  return "people";
-}
-
-export function RoleReveal({ label }: { label: string }) {
-  const role = getRole(label);
+export function RoleReveal({ role }: { role: GameRole }) {
   const config = ROLE_CONFIG[role];
 
   const theme = {
