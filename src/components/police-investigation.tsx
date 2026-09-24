@@ -39,27 +39,27 @@ export function PoliceInvestigation({
     targetRole: GameRole;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [expired, setExpired] = useState(() => Date.now() >= Date.parse(endsAt));
+  const [now, setNow] = useState(() => Date.now());
 
   const targets = useMemo(
     () => usernames.filter((username) => username !== currentUsername),
     [usernames, currentUsername],
   );
 
-  useEffect(() => {
-    const remainingMs = Math.max(0, Date.parse(endsAt) - Date.now());
+  const endsAtMs = Date.parse(endsAt);
+  const expired = now >= endsAtMs;
 
-    if (remainingMs === 0) {
-      setExpired(true);
-      return;
-    }
+  useEffect(() => {
+    const remainingMs = Math.max(0, endsAtMs - Date.now());
+
+    if (remainingMs === 0) return;
 
     const timeoutId = window.setTimeout(() => {
-      setExpired(true);
+      setNow(Date.now());
     }, remainingMs);
 
     return () => window.clearTimeout(timeoutId);
-  }, [endsAt]);
+  }, [endsAtMs]);
 
   if (role !== "police") {
     return (
@@ -88,12 +88,15 @@ export function PoliceInvestigation({
 
     if (!response.ok) {
       setError(response.message);
+
       if (response.message === "The round has expired.") {
-        setExpired(true);
+        setNow(Date.now());
       }
+
       if (response.message === "You have already used your investigation.") {
         setUsed(true);
       }
+
       return;
     }
 
@@ -110,11 +113,20 @@ export function PoliceInvestigation({
         <p className="text-xs font-black uppercase tracking-[0.16em] text-red-700">
           Investigation complete
         </p>
-        <p className="mt-3 text-xl font-black">
-          @{result.targetUsername} is {roleSentence(result.targetRole)}.
-        </p>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          You have already used your investigation.
+
+        <div className="mt-3 border-2 border-[var(--line)] bg-[var(--panel)] p-4">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--muted)]">
+            Investigated player
+          </p>
+          <p className="mt-2 text-2xl font-black">@{result.targetUsername}</p>
+          <p className="mt-1 text-lg font-black">
+            {roleSentence(result.targetRole)}
+          </p>
+        </div>
+
+        <p className="mt-3 text-sm font-black">Investigation used.</p>
+        <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+          Police is waiting for the next game action.
         </p>
       </div>
     );
