@@ -49,10 +49,6 @@ export function PoliceInvestigation({
   useEffect(() => {
     const remainingMs = Math.max(0, Date.parse(endsAt) - Date.now());
 
-    if (remainingMs === 0) {
-      setExpired(true);
-      return;
-    }
 
     const timeoutId = window.setTimeout(() => {
       setExpired(true);
@@ -91,7 +87,7 @@ export function PoliceInvestigation({
       if (response.message === "The round has expired.") {
         setExpired(true);
       }
-      if (response.message === "You have already used your investigation.") {
+      if (response.message === "Investigation used.") {
         setUsed(true);
       }
       return;
