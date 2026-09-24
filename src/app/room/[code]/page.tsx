@@ -5,13 +5,6 @@ import { leaveRoom, type WaitingRoomPlayerState } from "@/app/room/actions";
 import { WaitingRoomWatcher } from "@/components/waiting-room-watcher";
 import { createClient } from "@/lib/supabase/server";
 
-type RoomPlayer = {
-  user_id: string;
-  username: string;
-  is_ready: boolean;
-  is_host: boolean;
-};
-
 type RoomRow = {
   room_id: string;
   room_code: string;
