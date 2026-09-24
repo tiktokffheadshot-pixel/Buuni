@@ -180,7 +180,7 @@ export default async function RoomPage({
               ? currentPlayerIsHost
                 ? "You can start the game when everyone is ready."
                 : "The host can start the game when everyone is ready."
-              : "You can refresh this page to check for new players or readiness changes."}
+              : "Players and readiness update automatically while you wait."}
           </p>
         </div>
 
