@@ -61,6 +61,8 @@ export function WaitingRoomWatcher({
         if (state.status === "waiting") {
           setPlayers(state.players);
         }
+      } catch {
+        // Keep the waiting room alive through a transient polling failure.
       } finally {
         requestInFlight = false;
       }
