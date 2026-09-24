@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { RoleReveal, type GameRole } from "@/components/role-reveal";
+import { PoliceInvestigation } from "@/components/police-investigation";
 import { RoundTimer } from "@/components/round-timer";
 import { createClient } from "@/lib/supabase/server";
 
@@ -199,6 +200,7 @@ export default async function ThiefPolicePeopleRoomPage({
   const roleUi = ROLE_UI[role];
   const playerCount = rows.length;
   const playerNames = rows.map((row) => row.username);
+  const currentUsername = rows.find((row) => row.user_id === user.id)?.username ?? "";
   const roundExpired = first.round_expired;
   const timerEndsAt = first.round_ends_at;
 
@@ -277,14 +279,13 @@ export default async function ThiefPolicePeopleRoomPage({
               </div>
             </div>
 
-            <div className="mt-4 border-2 border-[var(--line)] bg-[var(--background)] p-4">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--muted)]">
-                Game actions
-              </p>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                No actions are available yet. Future mechanics will be added here.
-              </p>
-            </div>
+            <PoliceInvestigation
+              code={code}
+              role={role}
+              usernames={playerNames}
+              currentUsername={currentUsername}
+              endsAt={timerEndsAt}
+            />
           </main>
 
           <aside className="p-4 sm:p-6">
