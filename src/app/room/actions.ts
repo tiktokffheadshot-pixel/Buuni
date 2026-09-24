@@ -172,3 +172,108 @@ export async function startRoom(formData: FormData) {
 
   redirect("/games/thief-police-people/room/" + code);
 }
+
+
+export type WaitingRoomPlayerState = {
+  username: string;
+  is_ready: boolean;
+  is_host: boolean;
+  is_current_user: boolean;
+};
+
+export type WaitingRoomState =
+  | {
+      status: "waiting";
+      room_code: string;
+      players: WaitingRoomPlayerState[];
+    }
+  | {
+      status: "playing" | "finished";
+      room_code: string;
+      players: [];
+    }
+  | {
+      status: "error";
+      room_code: string;
+      players: [];
+    };
+
+export async function getWaitingRoomState(code: string): Promise<WaitingRoomState> {
+  const normalizedCode = code.trim().toUpperCase();
+
+  if (!/^[A-Z0-9]{6}$/.test(normalizedCode)) {
+    return {
+      status: "error",
+      room_code: normalizedCode,
+      players: [],
+    };
+  }
+
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+
+  if (!userData.user) {
+    return {
+      status: "error",
+      room_code: normalizedCode,
+      players: [],
+    };
+  }
+
+  const { data, error } = await supabase.rpc("get_room_waiting_data", {
+    p_code: normalizedCode,
+  });
+
+  if (error) {
+    const message = error.message?.toLowerCase() ?? "";
+
+    if (message.includes("room is already playing")) {
+      return {
+        status: "playing",
+        room_code: normalizedCode,
+        players: [],
+      };
+    }
+
+    if (message.includes("room is finished") || message.includes("no longer available")) {
+      return {
+        status: "finished",
+        room_code: normalizedCode,
+        players: [],
+      };
+    }
+
+    return {
+      status: "error",
+      room_code: normalizedCode,
+      players: [],
+    };
+  }
+
+  if (!data?.length) {
+    return {
+      status: "error",
+      room_code: normalizedCode,
+      players: [],
+    };
+  }
+
+  const rows = data as Array<{
+    room_code: string;
+    user_id: string;
+    username: string;
+    is_ready: boolean;
+    is_host: boolean;
+  }>;
+
+  return {
+    status: "waiting",
+    room_code: rows[0].room_code,
+    players: rows.map((row) => ({
+      username: row.username,
+      is_ready: row.is_ready,
+      is_host: row.is_host,
+      is_current_user: row.user_id === userData.user.id,
+    })),
+  };
+}
