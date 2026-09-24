@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import type { CSSProperties } from "react";
+import { useEffect, useState } from "react";
 
 const ROLE_REVEAL_STYLES = `
 @keyframes buuni-role-suspense {
@@ -96,6 +97,20 @@ const ROLE_CONFIG: Record<
 const PARTICLES = Array.from({ length: 14 }, (_, index) => index);
 
 export function RoleReveal({ role }: { role: GameRole }) {
+  const [complete, setComplete] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const durationMs = media.matches ? 1000 : 3400;
+    const timeoutId = window.setTimeout(() => {
+      setComplete(true);
+    }, durationMs);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  if (complete) return null;
+
   const config = ROLE_CONFIG[role];
 
   const theme = {
@@ -166,9 +181,7 @@ export function RoleReveal({ role }: { role: GameRole }) {
         ))}
       </div>
 
-      <div
-        className="absolute inset-0 flex h-[100dvh] w-[100vw] items-center justify-center px-4 py-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] text-center sm:px-8"
-      >
+      <div className="absolute inset-0 flex h-[100dvh] w-[100vw] items-center justify-center px-4 py-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] text-center sm:px-8">
         <div className="flex h-full w-full max-w-4xl flex-col items-center justify-center">
           <p className="text-xs font-black uppercase tracking-[0.32em] text-white/55 sm:text-sm">
             Your role is...
