@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+
+import { resolveExpiredRound } from "@/app/games/thief-police-people/actions";
 
 function formatRemaining(remainingMs: number) {
   const totalSeconds = Math.ceil(Math.max(0, remainingMs) / 1000);
@@ -10,22 +13,41 @@ function formatRemaining(remainingMs: number) {
   return String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
 }
 
-export function RoundTimer({ endsAt }: { endsAt: string }) {
+export function RoundTimer({
+  endsAt,
+  code,
+}: {
+  endsAt: string;
+  code: string;
+}) {
+  const router = useRouter();
   const endMs = Date.parse(endsAt);
   const [remainingMs, setRemainingMs] = useState(() =>
     Math.max(0, endMs - Date.now()),
   );
+  const resolutionStartedRef = useRef(false);
 
   useEffect(() => {
     const update = () => {
-      setRemainingMs(Math.max(0, endMs - Date.now()));
+      const nextRemainingMs = Math.max(0, endMs - Date.now());
+      setRemainingMs(nextRemainingMs);
+
+      if (nextRemainingMs <= 0 && !resolutionStartedRef.current) {
+        resolutionStartedRef.current = true;
+
+        void resolveExpiredRound(code).then((response) => {
+          if (response.ok && response.status === "finished") {
+            router.refresh();
+          }
+        });
+      }
     };
 
     update();
     const intervalId = window.setInterval(update, 250);
 
     return () => window.clearInterval(intervalId);
-  }, [endMs]);
+  }, [code, endMs, router]);
 
   const expired = remainingMs <= 0;
 
@@ -33,9 +55,7 @@ export function RoundTimer({ endsAt }: { endsAt: string }) {
     <div
       className={
         "min-w-[9.5rem] border-2 border-[var(--foreground)] px-4 py-3 text-center shadow-[3px_3px_0_var(--foreground)] " +
-        (expired
-          ? "bg-red-50"
-          : "bg-[var(--background)]")
+        (expired ? "bg-red-50" : "bg-[var(--background)]")
       }
       aria-live="polite"
       aria-label={

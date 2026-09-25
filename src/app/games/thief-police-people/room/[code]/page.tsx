@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { RoleReveal, type GameRole } from "@/components/role-reveal";
 import { PoliceInvestigation } from "@/components/police-investigation";
+import { RoundResultRealtime } from "@/components/round-result-realtime";
 import { RoundTimer } from "@/components/round-timer";
 import { createClient } from "@/lib/supabase/server";
 
@@ -24,6 +25,18 @@ type GameRoundRow = {
   is_host: boolean;
 };
 
+type RoundResultRow = {
+  round_id: string;
+  round_number: number;
+  result:
+    | "police_caught_thief"
+    | "police_wrong_accusation"
+    | "thief_escaped_timeout";
+  accused_username: string | null;
+  username: string;
+  role: GameRole;
+};
+
 export const dynamic = "force-dynamic";
 
 const ROLE_UI: Record<
@@ -36,19 +49,19 @@ const ROLE_UI: Record<
   }
 > = {
   police: {
-    label: "You are Police",
+    label: "Police",
     image: "/images/roles/police.png",
     accentClass: "text-sky-700",
     borderClass: "border-sky-500",
   },
   thief: {
-    label: "You are Thief",
+    label: "Thief",
     image: "/images/roles/thief.png",
     accentClass: "text-red-700",
     borderClass: "border-red-500",
   },
   people: {
-    label: "You are People",
+    label: "People",
     image: "/images/roles/people.png",
     accentClass: "text-amber-700",
     borderClass: "border-amber-500",
@@ -70,6 +83,128 @@ function GameUnavailable({ title, message }: { title: string; message: string })
         >
           Back to game lobby
         </Link>
+      </section>
+    </div>
+  );
+}
+
+function resultCopy(result: RoundResultRow["result"], accusedUsername: string | null) {
+  if (result === "police_caught_thief") {
+    return {
+      title: "POLICE CAUGHT THE THIEF",
+      explanation: accusedUsername
+        ? "@" + accusedUsername + " was the Thief."
+        : "The Police caught the Thief.",
+      accent: "border-sky-500",
+      text: "text-sky-700",
+    };
+  }
+
+  if (result === "police_wrong_accusation") {
+    return {
+      title: "POLICE MADE A WRONG ACCUSATION",
+      explanation: accusedUsername
+        ? "@" + accusedUsername + " was People."
+        : "The accused player was People.",
+      accent: "border-amber-500",
+      text: "text-amber-700",
+    };
+  }
+
+  return {
+    title: "THE THIEF ESCAPED",
+    explanation: "Police did not make an accusation before time ran out.",
+    accent: "border-red-500",
+    text: "text-red-700",
+  };
+}
+
+function RoundResult({
+  rows,
+}: {
+  rows: RoundResultRow[];
+}) {
+  const first = rows[0];
+  const copy = resultCopy(first.result, first.accused_username);
+
+  return (
+    <div className="mx-auto w-full max-w-4xl px-3 py-5 sm:px-6 sm:py-8">
+      <section className="overflow-hidden border-2 border-[var(--foreground)] bg-[var(--panel)] shadow-[6px_6px_0_var(--foreground)]">
+        <header className="border-b-2 border-[var(--foreground)] px-4 py-6 text-center sm:px-6 sm:py-8">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--accent-dark)]">
+            Buuni • Thief, Police &amp; People
+          </p>
+          <p className="mt-4 text-sm font-black uppercase tracking-[0.2em] text-[var(--muted)]">
+            Round {first.round_number}
+          </p>
+          <h1 className="mt-2 text-4xl font-black tracking-tight sm:text-6xl">
+            ROUND COMPLETE
+          </h1>
+        </header>
+
+        <main className="p-4 sm:p-6 lg:p-8">
+          <section
+            className={
+              "border-2 bg-[var(--background)] p-6 text-center shadow-[4px_4px_0_var(--foreground)] sm:p-8 " +
+              copy.accent
+            }
+          >
+            <p className={"text-2xl font-black tracking-tight sm:text-4xl " + copy.text}>
+              {copy.title}
+            </p>
+            <p className="mx-auto mt-4 max-w-2xl text-base font-bold leading-7 text-[var(--muted)] sm:text-lg">
+              {copy.explanation}
+            </p>
+          </section>
+
+          <section className="mt-8">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--muted)]">
+                  Public reveal
+                </p>
+                <h2 className="mt-1 text-2xl font-black sm:text-3xl">THE PLAYERS</h2>
+              </div>
+              <span className="text-xs font-bold text-[var(--muted)]">4 / 4 roles revealed</span>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {rows.map((row) => {
+                const roleUi = ROLE_UI[row.role];
+
+                return (
+                  <article
+                    key={row.username}
+                    className={
+                      "flex items-center gap-4 border-2 bg-[var(--background)] p-4 shadow-[3px_3px_0_var(--foreground)] " +
+                      roleUi.borderClass
+                    }
+                  >
+                    <div className="relative size-20 shrink-0 overflow-hidden border-2 border-[var(--foreground)] bg-white">
+                      <Image
+                        src={roleUi.image}
+                        alt=""
+                        fill
+                        sizes="80px"
+                        className="object-contain"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-lg font-black">@{row.username}</p>
+                      <p className={"mt-1 text-base font-black " + roleUi.accentClass}>
+                        {roleUi.label}
+                      </p>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+
+          <p className="mt-8 border-t-2 border-[var(--line)] pt-5 text-center text-sm font-bold text-[var(--muted)]">
+            Round complete. More game features coming next.
+          </p>
+        </main>
       </section>
     </div>
   );
@@ -105,20 +240,11 @@ export default async function ThiefPolicePeopleRoomPage({
       redirect("/room/" + code);
     }
 
-    if (message.includes("room is finished")) {
-      return (
-        <GameUnavailable
-          title="This game has finished."
-          message="The room is no longer an active game."
-        />
-      );
-    }
-
     if (message.includes("not in this room")) {
       notFound();
     }
 
-    if (message.includes("round is not available")) {
+    if (message.includes("game round is not available")) {
       return (
         <GameUnavailable
           title="Round unavailable."
@@ -141,18 +267,50 @@ export default async function ThiefPolicePeopleRoomPage({
   const rows = data as GameRoundRow[];
   const first = rows[0];
 
+  if (first.round_status === "finished") {
+    const { data: resultData, error: resultError } = await supabase.rpc(
+      "get_round_result",
+      { p_code: code },
+    );
+
+    if (resultError) {
+      if (resultError.message?.toLowerCase().includes("not in this room")) {
+        notFound();
+      }
+
+      if (resultError.message?.toLowerCase().includes("round result is not available")) {
+        return (
+          <GameUnavailable
+            title="Result unavailable."
+            message="The round is finished, but its public result is not available yet."
+          />
+        );
+      }
+
+      console.error("get_round_result failed:", resultError.message);
+      return (
+        <GameUnavailable
+          title="Result unavailable."
+          message="We could not load the authoritative round result. Please try again."
+        />
+      );
+    }
+
+    if (!resultData?.length || resultData.length !== 4) {
+      return (
+        <GameUnavailable
+          title="Result unavailable."
+          message="The public role reveal is incomplete."
+        />
+      );
+    }
+
+    return <RoundResult rows={resultData as RoundResultRow[]} />;
+  }
+
   if (first.room_status !== "playing") {
     if (first.room_status === "waiting") redirect("/room/" + code);
     return <GameUnavailable title="Game unavailable." message="This room is not an active game." />;
-  }
-
-  if (first.round_status === "finished") {
-    return (
-      <GameUnavailable
-        title="Round finished."
-        message="This round is no longer active."
-      />
-    );
   }
 
   const { data: roleData, error: roleError } = await supabase.rpc(
@@ -165,14 +323,6 @@ export default async function ThiefPolicePeopleRoomPage({
 
     if (message.includes("not in this room")) notFound();
     if (message.includes("room is still waiting")) redirect("/room/" + code);
-    if (message.includes("room is finished")) {
-      return (
-        <GameUnavailable
-          title="This game has finished."
-          message="The room is no longer an active game."
-        />
-      );
-    }
 
     if (message.includes("role is not assigned")) {
       return (
@@ -201,11 +351,12 @@ export default async function ThiefPolicePeopleRoomPage({
   const playerCount = rows.length;
   const playerNames = rows.map((row) => row.username);
   const currentUsername = rows.find((row) => row.user_id === user.id)?.username ?? "";
-  const roundExpired = first.round_expired;
   const timerEndsAt = first.round_ends_at;
 
   return (
     <div className="mx-auto w-full max-w-4xl px-3 py-5 sm:px-6 sm:py-8">
+      <RoundResultRealtime roomId={first.room_id} />
+
       <section className="overflow-hidden border-2 border-[var(--foreground)] bg-[var(--panel)] shadow-[6px_6px_0_var(--foreground)]">
         <header className="border-b-2 border-[var(--foreground)] px-4 py-4 sm:px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -220,7 +371,7 @@ export default async function ThiefPolicePeopleRoomPage({
                 Room {first.room_code}
               </p>
             </div>
-            <RoundTimer endsAt={timerEndsAt} />
+            <RoundTimer endsAt={timerEndsAt} code={code} />
           </div>
         </header>
 
@@ -231,9 +382,7 @@ export default async function ThiefPolicePeopleRoomPage({
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--muted)]">
                   Game status
                 </p>
-                <p className="mt-1 text-lg font-black">
-                  {roundExpired ? "Time's up" : "The round is active."}
-                </p>
+                <p className="mt-1 text-lg font-black">The round is active.</p>
               </div>
               <div className="border-2 border-[var(--line)] bg-[var(--background)] px-3 py-2 text-sm font-black">
                 {playerCount} / 4 players
@@ -258,7 +407,7 @@ export default async function ThiefPolicePeopleRoomPage({
                 </div>
                 <div className="min-w-0">
                   <p className={"text-lg font-black " + roleUi.accentClass}>
-                    {roleUi.label}
+                    {roleUi.label.startsWith("You") ? roleUi.label : "You are " + roleUi.label}
                   </p>
                   <p className="mt-1 text-sm leading-5 text-[var(--muted)]">
                     Your role is private. Other players&apos; roles are hidden.
