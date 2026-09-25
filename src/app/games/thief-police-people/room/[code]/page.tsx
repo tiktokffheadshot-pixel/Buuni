@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { playAgain } from "@/app/room/actions";
 import { RoleReveal, type GameRole } from "@/components/role-reveal";
 import { PoliceInvestigation } from "@/components/police-investigation";
 import { RoundResultRealtime } from "@/components/round-result-realtime";
@@ -23,6 +24,18 @@ type GameRoundRow = {
   username: string;
   joined_at: string;
   is_host: boolean;
+};
+
+type RoundRewardRow = {
+  round_id: string;
+  round_number: number;
+  reward_type:
+    | "police_caught_thief"
+    | "police_wrong_accusation"
+    | "thief_escaped_timeout";
+  coins: number;
+  xp: number;
+  created_at: string;
 };
 
 type RoundResultRow = {
@@ -121,8 +134,14 @@ function resultCopy(result: RoundResultRow["result"], accusedUsername: string | 
 
 function RoundResult({
   rows,
+  reward,
+  yourRole,
+  playAgainMessage,
 }: {
   rows: RoundResultRow[];
+  reward: RoundRewardRow;
+  yourRole: GameRole;
+  playAgainMessage: string | null;
 }) {
   const first = rows[0];
   const copy = resultCopy(first.result, first.accused_username);
@@ -143,6 +162,31 @@ function RoundResult({
         </header>
 
         <main className="p-4 sm:p-6 lg:p-8">
+          <section className="mt-8 border-2 border-[var(--foreground)] bg-[var(--background)] p-5 shadow-[4px_4px_0_var(--foreground)] sm:p-6">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--muted)]">
+              Your role
+            </p>
+            <div className="mt-4 flex items-center gap-4">
+              <div className={"relative size-20 shrink-0 overflow-hidden border-2 border-[var(--foreground)] bg-white " + ROLE_UI[yourRole].borderClass}>
+                <Image
+                  src={ROLE_UI[yourRole].image}
+                  alt=""
+                  fill
+                  sizes="80px"
+                  className="object-contain"
+                />
+              </div>
+              <div>
+                <p className={"text-2xl font-black " + ROLE_UI[yourRole].accentClass}>
+                  {ROLE_UI[yourRole].label}
+                </p>
+                <p className="mt-1 text-sm font-bold text-[var(--muted)]">
+                  This was your role for Round {first.round_number}.
+                </p>
+              </div>
+            </div>
+          </section>
+
           <section
             className={
               "border-2 bg-[var(--background)] p-6 text-center shadow-[4px_4px_0_var(--foreground)] sm:p-8 " +
@@ -201,8 +245,44 @@ function RoundResult({
             </div>
           </section>
 
+          <section className="mt-8 border-2 border-[var(--foreground)] bg-[var(--background)] p-5 text-center shadow-[4px_4px_0_var(--foreground)] sm:p-6">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--muted)]">
+              Your reward
+            </p>
+            <p className="mt-3 text-3xl font-black sm:text-4xl">
+              +{reward.coins} COINS
+            </p>
+            <p className="mt-1 text-lg font-black text-[var(--accent-dark)]">
+              +{reward.xp} XP
+            </p>
+          </section>
+
+          <section className="mt-8 border-2 border-[var(--foreground)] bg-[var(--panel)] p-5 shadow-[4px_4px_0_var(--foreground)] sm:p-6">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--muted)]">
+              Next game
+            </p>
+            <h2 className="mt-1 text-2xl font-black">PLAY AGAIN</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+              Everyone from this round must choose Play Again before the room returns to the waiting state.
+            </p>
+            {playAgainMessage ? (
+              <p className="mt-4 border-2 border-[var(--line)] bg-[var(--background)] px-3 py-3 text-sm font-bold">
+                {playAgainMessage}
+              </p>
+            ) : null}
+            <form action={playAgain} className="mt-5">
+              <input type="hidden" name="code" value={first.room_code} />
+              <button
+                type="submit"
+                className="min-h-12 w-full border-2 border-[var(--foreground)] bg-[var(--accent)] px-5 font-black text-white shadow-[4px_4px_0_var(--foreground)] transition-transform hover:-translate-y-0.5"
+              >
+                PLAY AGAIN
+              </button>
+            </form>
+          </section>
+
           <p className="mt-8 border-t-2 border-[var(--line)] pt-5 text-center text-sm font-bold text-[var(--muted)]">
-            Round complete. More game features coming next.
+            Previous round is permanently finished. Rewards are saved to the server.
           </p>
         </main>
       </section>
@@ -214,8 +294,10 @@ export default async function ThiefPolicePeopleRoomPage({
   params,
 }: {
   params: Promise<{ code: string }>;
+  searchParams: Promise<{ play_again?: string; play_again_error?: string }>;
 }) {
   const { code: rawCode } = await params;
+  const { play_again: playAgainState, play_again_error: playAgainError } = await searchParams;
   const code = rawCode.toUpperCase();
 
   if (!/^[A-Z0-9]{6}$/.test(code)) notFound();
@@ -305,7 +387,60 @@ export default async function ThiefPolicePeopleRoomPage({
       );
     }
 
-    return <RoundResult rows={resultData as RoundResultRow[]} />;
+    const resultRows = resultData as RoundResultRow[];
+    const currentPlayer = rows.find((row) => row.user_id === user.id);
+    const yourRole = resultRows.find((row) => row.username === currentPlayer?.username)?.role;
+
+    if (
+      !currentPlayer ||
+      (yourRole !== "police" && yourRole !== "thief" && yourRole !== "people")
+    ) {
+      return (
+        <GameUnavailable
+          title="Your role is unavailable."
+          message="The completed round does not contain a valid role for the authenticated player."
+        />
+      );
+    }
+
+    const { data: rewardData, error: rewardError } = await supabase.rpc(
+      "get_my_round_reward",
+      { p_code: code },
+    );
+
+    if (rewardError) {
+      console.error("get_my_round_reward failed:", rewardError.message);
+      return (
+        <GameUnavailable
+          title="Reward unavailable."
+          message="The round finished, but your reward could not be loaded safely."
+        />
+      );
+    }
+
+    if (!rewardData?.length || rewardData.length !== 1) {
+      return (
+        <GameUnavailable
+          title="Reward unavailable."
+          message="The server did not return exactly one reward for your completed round."
+        />
+      );
+    }
+
+    const playAgainMessage = playAgainError
+      ? playAgainError
+      : playAgainState === "waiting"
+        ? "You are ready to play again. Waiting for the other 3 players."
+        : null;
+
+    return (
+      <RoundResult
+        rows={resultRows}
+        reward={rewardData[0] as RoundRewardRow}
+        yourRole={yourRole}
+        playAgainMessage={playAgainMessage}
+      />
+    );
   }
 
   if (first.room_status !== "playing") {

@@ -118,6 +118,33 @@ export async function setReady(formData: FormData) {
   redirect("/room/" + code);
 }
 
+export async function playAgain(formData: FormData) {
+  const code = String(formData.get("code") ?? "").trim().toUpperCase();
+
+  if (!/^[A-Z0-9]{6}$/.test(code)) redirect(gameLobbyPath);
+
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+
+  if (!userData.user) {
+    redirect("/login?next=/games/thief-police-people/room/" + code);
+  }
+
+  const { data, error } = await supabase.rpc("play_again", { p_code: code });
+
+  if (error) {
+    const message = roomErrorMessage(error.message ?? "Unable to start another game.");
+    console.error(rpcError("play_again", error));
+    redirect("/games/thief-police-people/room/" + code + "?play_again_error=" + encodeURIComponent(message));
+  }
+
+  if (data?.[0]?.room_status === "waiting") {
+    redirect("/room/" + code);
+  }
+
+  redirect("/games/thief-police-people/room/" + code + "?play_again=waiting");
+}
+
 export async function startRoom(formData: FormData) {
   const code = String(formData.get("code") ?? "").trim().toUpperCase();
 
