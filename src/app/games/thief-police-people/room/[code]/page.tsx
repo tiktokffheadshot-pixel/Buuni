@@ -208,7 +208,7 @@ export default async function ThiefPolicePeopleRoomPage({
     <div className="mx-auto w-full max-w-4xl px-3 py-5 sm:px-6 sm:py-8">
       <section className="overflow-hidden border-2 border-[var(--foreground)] bg-[var(--panel)] shadow-[6px_6px_0_var(--foreground)]">
         <header className="border-b-2 border-[var(--foreground)] px-4 py-4 sm:px-6">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-dark)]">
                 Buuni • Thief, Police &amp; People
@@ -274,7 +274,7 @@ export default async function ThiefPolicePeopleRoomPage({
               <div className="flex min-h-44 flex-col items-center justify-center text-center">
                 <p className="text-xl font-black">The round is active.</p>
                 <p className="mt-2 max-w-md text-sm leading-6 text-[var(--muted)]">
-                  This is where the game&apos;s real actions will appear next.
+                  Police investigation and accusation actions appear here during the active round.
                 </p>
               </div>
             </div>
