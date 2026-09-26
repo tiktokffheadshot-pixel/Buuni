@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { leaveRoom, setReady, startRoom } from "@/app/room/actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { WaitingRoomRealtime } from "@/components/waiting-room-realtime";
 import { createClient } from "@/lib/supabase/server";
 
@@ -187,13 +188,9 @@ export default async function RoomPage({
         {currentPlayerIsHost ? (
           <form action={startRoom} className="mt-6">
             <input type="hidden" name="code" value={first.room_code} />
-            <button
-              type="submit"
-              disabled={!allReady}
-              className="min-h-12 w-full border-2 border-[var(--foreground)] bg-[var(--accent)] px-5 font-black text-white shadow-[4px_4px_0_var(--foreground)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
-            >
+            <FormSubmitButton disabled={!allReady} pendingLabel="Starting…" className="min-h-12 w-full border-2 border-[var(--foreground)] bg-[var(--accent)] px-5 font-black text-white shadow-[4px_4px_0_var(--foreground)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0">
               Start Game
-            </button>
+            </FormSubmitButton>
           </form>
         ) : null}
 
@@ -205,12 +202,9 @@ export default async function RoomPage({
               name="ready"
               value={currentPlayer?.is_ready ? "false" : "true"}
             />
-            <button
-              type="submit"
-              className="min-h-12 w-full border-2 border-[var(--foreground)] bg-[var(--green)] px-5 font-black text-white shadow-[4px_4px_0_var(--foreground)] transition-transform hover:-translate-y-0.5"
-            >
+            <FormSubmitButton pendingLabel="Saving…" className="min-h-12 w-full border-2 border-[var(--foreground)] bg-[var(--green)] px-5 font-black text-white shadow-[4px_4px_0_var(--foreground)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0">
               {currentPlayer?.is_ready ? "Mark Not Ready" : "Ready Up"}
-            </button>
+            </FormSubmitButton>
           </form>
           <Link
             href={"/room/" + first.room_code}

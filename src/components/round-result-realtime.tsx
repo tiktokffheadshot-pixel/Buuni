@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
 
-export function RoundResultRealtime({ roomId }: { roomId: string }) {
+export function RoundResultRealtime({ roomId, code }: { roomId: string; code: string }) {
   const router = useRouter();
-  const refreshedRef = useRef(false);
+  const handledRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -25,11 +25,14 @@ export function RoundResultRealtime({ roomId }: { roomId: string }) {
           select: ["id", "status"],
         },
         (payload) => {
-          if (!active || refreshedRef.current) return;
+          if (!active || handledRef.current) return;
 
           if (payload.new?.status === "finished") {
-            refreshedRef.current = true;
+            handledRef.current = true;
             router.refresh();
+          } else if (payload.new?.status === "waiting") {
+            handledRef.current = true;
+            router.replace("/room/" + code);
           }
         },
       )
@@ -39,7 +42,7 @@ export function RoundResultRealtime({ roomId }: { roomId: string }) {
       active = false;
       void supabase.removeChannel(channel);
     };
-  }, [roomId, router]);
+  }, [code, roomId, router]);
 
   return null;
 }

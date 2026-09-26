@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { playAgain } from "@/app/room/actions";
 import { RoleReveal, type GameRole } from "@/components/role-reveal";
 import { PoliceInvestigation } from "@/components/police-investigation";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { RoundResultRealtime } from "@/components/round-result-realtime";
 import { RoundTimer } from "@/components/round-timer";
 import { createClient } from "@/lib/supabase/server";
@@ -140,7 +141,6 @@ function RoundResult({
 }: {
   rows: RoundResultRow[];
   reward: RoundRewardRow;
-  yourRole: GameRole;
   playAgainMessage: string | null;
 }) {
   const first = rows[0];
@@ -162,31 +162,6 @@ function RoundResult({
         </header>
 
         <main className="p-4 sm:p-6 lg:p-8">
-          <section className="mt-8 border-2 border-[var(--foreground)] bg-[var(--background)] p-5 shadow-[4px_4px_0_var(--foreground)] sm:p-6">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--muted)]">
-              Your role
-            </p>
-            <div className="mt-4 flex items-center gap-4">
-              <div className={"relative size-20 shrink-0 overflow-hidden border-2 border-[var(--foreground)] bg-white " + ROLE_UI[yourRole].borderClass}>
-                <Image
-                  src={ROLE_UI[yourRole].image}
-                  alt=""
-                  fill
-                  sizes="80px"
-                  className="object-contain"
-                />
-              </div>
-              <div>
-                <p className={"text-2xl font-black " + ROLE_UI[yourRole].accentClass}>
-                  {ROLE_UI[yourRole].label}
-                </p>
-                <p className="mt-1 text-sm font-bold text-[var(--muted)]">
-                  This was your role for Round {first.round_number}.
-                </p>
-              </div>
-            </div>
-          </section>
-
           <section
             className={
               "border-2 bg-[var(--background)] p-6 text-center shadow-[4px_4px_0_var(--foreground)] sm:p-8 " +
@@ -272,12 +247,9 @@ function RoundResult({
             ) : null}
             <form action={playAgain} className="mt-5">
               <input type="hidden" name="code" value={first.room_code} />
-              <button
-                type="submit"
-                className="min-h-12 w-full border-2 border-[var(--foreground)] bg-[var(--accent)] px-5 font-black text-white shadow-[4px_4px_0_var(--foreground)] transition-transform hover:-translate-y-0.5"
-              >
+              <FormSubmitButton pendingLabel="Joining…" className="min-h-12 w-full border-2 border-[var(--foreground)] bg-[var(--accent)] px-5 font-black text-white shadow-[4px_4px_0_var(--foreground)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0">
                 PLAY AGAIN
-              </button>
+              </FormSubmitButton>
             </form>
           </section>
 
@@ -437,7 +409,6 @@ export default async function ThiefPolicePeopleRoomPage({
       <RoundResult
         rows={resultRows}
         reward={rewardData[0] as RoundRewardRow}
-        yourRole={yourRole}
         playAgainMessage={playAgainMessage}
       />
     );
@@ -490,7 +461,7 @@ export default async function ThiefPolicePeopleRoomPage({
 
   return (
     <div className="mx-auto w-full max-w-4xl px-3 py-5 sm:px-6 sm:py-8">
-      <RoundResultRealtime roomId={first.room_id} />
+      <RoundResultRealtime roomId={first.room_id} code={code} />
 
       <section className="overflow-hidden border-2 border-[var(--foreground)] bg-[var(--panel)] shadow-[6px_6px_0_var(--foreground)]">
         <header className="border-b-2 border-[var(--foreground)] px-4 py-4 sm:px-6">
