@@ -75,15 +75,6 @@ export function PoliceInvestigation({
   const [accusationErrorMessage, setAccusationErrorMessage] = useState<string | null>(null);
   const expired = useRoundExpired(endsAt);
 
-  useEffect(() => {
-    setUsed(initialInvestigation.used);
-    setResult(
-      initialInvestigation.used && initialInvestigation.targetUsername && initialInvestigation.targetRole
-        ? { targetUsername: initialInvestigation.targetUsername, targetRole: initialInvestigation.targetRole }
-        : null,
-    );
-  }, [initialInvestigation.used, initialInvestigation.targetRole, initialInvestigation.targetUsername]);
-
   const targets = useMemo(
     () => usernames.filter((username) => username !== currentUsername),
     [usernames, currentUsername],

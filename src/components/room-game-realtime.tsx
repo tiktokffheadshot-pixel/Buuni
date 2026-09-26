@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
 
-type Props = { roomId: string; code: string };
+type Props = { roomId: string };
 const RECONNECT_DELAYS = [1000, 2000, 5000, 10000];
 const REFRESH_DEBOUNCE_MS = 150;
 
-export function RoomGameRealtime({ roomId, code }: Props) {
+export function RoomGameRealtime({ roomId }: Props) {
   const router = useRouter();
   const roomIdRef = useRef(roomId);
 

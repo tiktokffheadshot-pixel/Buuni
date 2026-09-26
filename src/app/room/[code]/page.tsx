@@ -101,7 +101,7 @@ export default async function RoomPage({
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
-      <RoomGameRealtime roomId={first.room_id} code={first.room_code} />
+      <RoomGameRealtime roomId={first.room_id} />
       <section className="border-2 border-[var(--foreground)] bg-[var(--panel)] p-5 shadow-[6px_6px_0_var(--foreground)] sm:p-8">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
