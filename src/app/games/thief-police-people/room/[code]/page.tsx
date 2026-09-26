@@ -136,11 +136,12 @@ function resultCopy(result: RoundResultRow["result"], accusedUsername: string | 
 function RoundResult({
   rows,
   reward,
-  yourRole,
+  code,
   playAgainMessage,
 }: {
   rows: RoundResultRow[];
   reward: RoundRewardRow;
+  code: string;
   playAgainMessage: string | null;
 }) {
   const first = rows[0];
@@ -246,7 +247,7 @@ function RoundResult({
               </p>
             ) : null}
             <form action={playAgain} className="mt-5">
-              <input type="hidden" name="code" value={first.room_code} />
+              <input type="hidden" name="code" value={code} />
               <FormSubmitButton pendingLabel="Joining…" className="min-h-12 w-full border-2 border-[var(--foreground)] bg-[var(--accent)] px-5 font-black text-white shadow-[4px_4px_0_var(--foreground)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0">
                 PLAY AGAIN
               </FormSubmitButton>
@@ -264,6 +265,7 @@ function RoundResult({
 
 export default async function ThiefPolicePeopleRoomPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ code: string }>;
   searchParams: Promise<{ play_again?: string; play_again_error?: string }>;
@@ -409,6 +411,7 @@ export default async function ThiefPolicePeopleRoomPage({
       <RoundResult
         rows={resultRows}
         reward={rewardData[0] as RoundRewardRow}
+        code={code}
         playAgainMessage={playAgainMessage}
       />
     );
