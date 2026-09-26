@@ -6,7 +6,7 @@ type InvestigationResult =
   | {
       ok: true;
       targetUsername: string;
-      targetRole: "police" | "thief" | "people";
+      targetRole: "police" | "thief" | "people" | "hidden";
     }
   | {
       ok: false;
@@ -131,7 +131,8 @@ export async function investigatePlayer(
     typeof row.target_username !== "string" ||
     (row.target_role !== "police" &&
       row.target_role !== "thief" &&
-      row.target_role !== "people")
+      row.target_role !== "people" &&
+      row.target_role !== "hidden")
   ) {
     console.error("investigate_player returned invalid result.");
     return { ok: false, message: "Investigation returned invalid data." };

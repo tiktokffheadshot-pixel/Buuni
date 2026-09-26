@@ -8,6 +8,7 @@ import {
 } from "@/app/games/thief-police-people/actions";
 
 type GameRole = "police" | "thief" | "people";
+type InvestigationRole = GameRole | "hidden";
 
 type Props = {
   code: string;
@@ -15,15 +16,21 @@ type Props = {
   usernames: string[];
   currentUsername: string;
   endsAt: string;
+  initialInvestigation: {
+    used: boolean;
+    targetUsername: string | null;
+    targetRole: InvestigationRole | null;
+  };
 };
 
-const ROLE_LABEL: Record<GameRole, string> = {
+const ROLE_LABEL: Record<InvestigationRole, string> = {
   police: "Police",
   thief: "Thief",
   people: "People",
+  hidden: "HIDDEN",
 };
 
-function roleSentence(role: GameRole) {
+function roleSentence(role: InvestigationRole) {
   return ROLE_LABEL[role];
 }
 
@@ -48,20 +55,34 @@ export function PoliceInvestigation({
   usernames,
   currentUsername,
   endsAt,
+  initialInvestigation,
 }: Props) {
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [used, setUsed] = useState(false);
+  const [used, setUsed] = useState(initialInvestigation.used);
   const [result, setResult] = useState<{
     targetUsername: string;
-    targetRole: GameRole;
-  } | null>(null);
+    targetRole: InvestigationRole;
+  } | null>(
+    initialInvestigation.used && initialInvestigation.targetUsername && initialInvestigation.targetRole
+      ? { targetUsername: initialInvestigation.targetUsername, targetRole: initialInvestigation.targetRole }
+      : null,
+  );
   const [accusationTarget, setAccusationTarget] = useState<string | null>(null);
   const [accusationPending, setAccusationPending] = useState(false);
   const [accusationLocked, setAccusationLocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [accusationErrorMessage, setAccusationErrorMessage] = useState<string | null>(null);
   const expired = useRoundExpired(endsAt);
+
+  useEffect(() => {
+    setUsed(initialInvestigation.used);
+    setResult(
+      initialInvestigation.used && initialInvestigation.targetUsername && initialInvestigation.targetRole
+        ? { targetUsername: initialInvestigation.targetUsername, targetRole: initialInvestigation.targetRole }
+        : null,
+    );
+  }, [initialInvestigation.used, initialInvestigation.targetRole, initialInvestigation.targetUsername]);
 
   const targets = useMemo(
     () => usernames.filter((username) => username !== currentUsername),
@@ -153,6 +174,7 @@ export function PoliceInvestigation({
             </p>
             <p className="mt-2 text-2xl font-black">@{result.targetUsername}</p>
             <p className="mt-1 text-lg font-black">{roleSentence(result.targetRole)}</p>
+            {result.targetRole === "hidden" ? <p className="mt-2 text-sm font-bold text-[var(--muted)]">This player is currently hidden from Police investigation.</p> : null}
           </div>
 
           <p className="mt-3 text-sm font-black">Investigation used.</p>

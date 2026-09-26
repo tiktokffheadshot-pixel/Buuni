@@ -7,7 +7,7 @@ import { RoleReveal, type GameRole } from "@/components/role-reveal";
 import { PoliceInvestigation } from "@/components/police-investigation";
 import { ThiefHide } from "@/components/thief-hide";
 import { FormSubmitButton } from "@/components/form-submit-button";
-import { RoundResultRealtime } from "@/components/round-result-realtime";
+import { RoomGameRealtime } from "@/components/room-game-realtime";
 import { RoundTimer } from "@/components/round-timer";
 import { createClient } from "@/lib/supabase/server";
 
@@ -152,7 +152,7 @@ function RoundResult({
 
   return (
     <div className="mx-auto w-full max-w-4xl px-3 py-5 sm:px-6 sm:py-8">
-      <RoundResultRealtime roomId={roomId} code={code} />
+      <RoomGameRealtime roomId={roomId} code={code} />
       <section className="overflow-hidden border-2 border-[var(--foreground)] bg-[var(--panel)] shadow-[6px_6px_0_var(--foreground)]">
         <header className="border-b-2 border-[var(--foreground)] px-4 py-6 text-center sm:px-6 sm:py-8">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--accent-dark)]">
@@ -462,6 +462,30 @@ export default async function ThiefPolicePeopleRoomPage({
 
   const role: GameRole = roleValue;
 
+  let investigationState: {
+    used: boolean;
+    targetUsername: string | null;
+    targetRole: "police" | "thief" | "people" | "hidden" | null;
+  } = { used: false, targetUsername: null, targetRole: null };
+
+  if (role === "police") {
+    const { data: investigationData, error: investigationError } = await supabase.rpc("get_my_investigation", { p_code: code });
+    if (investigationError) {
+      console.error("get_my_investigation failed:", investigationError.message);
+      return <GameUnavailable title="Investigation state unavailable." message="Your private investigation state could not be loaded safely." />;
+    }
+    const investigationRow = investigationData?.[0] as { used?: boolean; target_username?: string | null; target_role?: string | null } | undefined;
+    if (!investigationRow || typeof investigationRow.used !== "boolean") {
+      return <GameUnavailable title="Investigation state unavailable." message="The server did not return a valid investigation state." />;
+    }
+    const investigationRole = investigationRow.target_role === "police" || investigationRow.target_role === "thief" || investigationRow.target_role === "people" || investigationRow.target_role === "hidden" ? investigationRow.target_role : null;
+    investigationState = {
+      used: investigationRow.used,
+      targetUsername: typeof investigationRow.target_username === "string" ? investigationRow.target_username : null,
+      targetRole: investigationRole,
+    };
+  }
+
   let thiefHideState: { used: boolean; hiddenUntil: string | null } | null = null;
 
   if (role === "thief") {
@@ -508,7 +532,7 @@ export default async function ThiefPolicePeopleRoomPage({
 
   return (
     <div className="mx-auto w-full max-w-4xl px-3 py-5 sm:px-6 sm:py-8">
-      <RoundResultRealtime roomId={first.room_id} code={code} />
+      <RoomGameRealtime roomId={first.room_id} code={code} />
 
       <section className="overflow-hidden border-2 border-[var(--foreground)] bg-[var(--panel)] shadow-[6px_6px_0_var(--foreground)]">
         <header className="border-b-2 border-[var(--foreground)] px-4 py-4 sm:px-6">
@@ -587,6 +611,7 @@ export default async function ThiefPolicePeopleRoomPage({
               usernames={playerNames}
               currentUsername={currentUsername}
               endsAt={timerEndsAt}
+              initialInvestigation={investigationState}
             />
 
             {role === "thief" && thiefHideState ? (

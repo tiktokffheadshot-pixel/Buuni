@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { hideThief } from "@/app/games/thief-police-people/actions";
 
@@ -15,6 +15,22 @@ export function ThiefHide({ code, used: initialUsed, hiddenUntil: initialHiddenU
   const [hiddenUntil, setHiddenUntil] = useState(initialHiddenUntil);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    setUsed(initialUsed);
+    setHiddenUntil(initialHiddenUntil);
+  }, [initialHiddenUntil, initialUsed]);
+
+  useEffect(() => {
+    if (!hiddenUntil) return;
+    const update = () => setNow(Date.now());
+    update();
+    const intervalId = window.setInterval(update, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [hiddenUntil]);
+
+  const remainingSeconds = hiddenUntil ? Math.max(0, Math.ceil((Date.parse(hiddenUntil) - now) / 1000)) : 0;
 
   async function submitHide() {
     if (used || pending) return;
@@ -55,14 +71,13 @@ export function ThiefHide({ code, used: initialUsed, hiddenUntil: initialHiddenU
       </button>
 
       {used ? (
-        <p className="mt-3 text-sm font-black" role="status">
-          {hiddenUntil
-            ? "You are hidden until " + new Date(hiddenUntil).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              }) + "."
-            : "Hide has been used this round."}
-        </p>
+        <div className="mt-3 border-2 border-red-500 bg-red-50 px-3 py-3" role="status">
+          {remainingSeconds > 0 ? (
+            <><p className="text-xl font-black text-red-700">HIDDEN</p><p className="mt-1 text-sm font-bold">You are hidden from Police investigation for {remainingSeconds}s.</p></>
+          ) : (
+            <><p className="text-xl font-black text-[var(--muted)]">HIDE ENDED</p><p className="mt-1 text-sm font-bold text-[var(--muted)]">Hide has ended. It cannot be used again this round.</p></>
+          )}
+        </div>
       ) : null}
 
       {error ? (
