@@ -18,11 +18,6 @@ export function ThiefHide({ code, used: initialUsed, hiddenUntil: initialHiddenU
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    setUsed(initialUsed);
-    setHiddenUntil(initialHiddenUntil);
-  }, [initialHiddenUntil, initialUsed]);
-
-  useEffect(() => {
     if (!hiddenUntil) return;
     const update = () => setNow(Date.now());
     update();

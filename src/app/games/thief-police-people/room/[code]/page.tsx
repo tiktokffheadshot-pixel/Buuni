@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { playAgain } from "@/app/room/actions";
 import { RoleReveal, type GameRole } from "@/components/role-reveal";
 import { PoliceInvestigation } from "@/components/police-investigation";
+import { GameActivity } from "@/components/game-activity";
 import { ThiefHide } from "@/components/thief-hide";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { RoomGameRealtime } from "@/components/room-game-realtime";
@@ -140,19 +141,24 @@ function RoundResult({
   roomId,
   code,
   playAgainMessage,
+  activityEvents,
 }: {
   rows: RoundResultRow[];
   reward: RoundRewardRow;
   roomId: string;
   code: string;
   playAgainMessage: string | null;
+  activityEvents: Array<{
+    event_type: "thief_hide" | "police_investigation" | "police_accusation" | "round_finished";
+    created_at: string;
+  }>;
 }) {
   const first = rows[0];
   const copy = resultCopy(first.result, first.accused_username);
 
   return (
     <div className="mx-auto w-full max-w-4xl px-3 py-5 sm:px-6 sm:py-8">
-      <RoomGameRealtime roomId={roomId} code={code} />
+      <RoomGameRealtime roomId={roomId} />
       <section className="overflow-hidden border-2 border-[var(--foreground)] bg-[var(--panel)] shadow-[6px_6px_0_var(--foreground)]">
         <header className="border-b-2 border-[var(--foreground)] px-4 py-6 text-center sm:px-6 sm:py-8">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--accent-dark)]">
@@ -224,6 +230,8 @@ function RoundResult({
               })}
             </div>
           </section>
+
+          <GameActivity events={activityEvents} />
 
           <section className="mt-8 border-2 border-[var(--foreground)] bg-[var(--background)] p-5 text-center shadow-[4px_4px_0_var(--foreground)] sm:p-6">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--muted)]">
@@ -405,6 +413,20 @@ export default async function ThiefPolicePeopleRoomPage({
       );
     }
 
+    const { data: activityData, error: activityError } = await supabase.rpc("get_game_activity", { p_code: code });
+    if (activityError) {
+      console.error("get_game_activity failed:", activityError.message);
+      return <GameUnavailable title="Game activity unavailable." message="Public game activity could not be loaded safely." />;
+    }
+    const resultActivity = (activityData ?? []) as Array<{ event_type?: string; created_at?: string }>;
+    if (resultActivity.some((event) => !["thief_hide", "police_investigation", "police_accusation", "round_finished"].includes(event.event_type ?? "") || typeof event.created_at !== "string")) {
+      return <GameUnavailable title="Game activity unavailable." message="The server returned invalid activity data." />;
+    }
+    const activityEvents = resultActivity as Array<{
+      event_type: "thief_hide" | "police_investigation" | "police_accusation" | "round_finished";
+      created_at: string;
+    }>;
+
     const playAgainMessage = playAgainError
       ? playAgainError
       : playAgainState === "waiting"
@@ -418,6 +440,7 @@ export default async function ThiefPolicePeopleRoomPage({
         roomId={first.room_id}
         code={code}
         playAgainMessage={playAgainMessage}
+        activityEvents={activityEvents}
       />
     );
   }
@@ -529,10 +552,23 @@ export default async function ThiefPolicePeopleRoomPage({
   const playerNames = rows.map((row) => row.username);
   const currentUsername = rows.find((row) => row.user_id === user.id)?.username ?? "";
   const timerEndsAt = first.round_ends_at;
+  const { data: activityData, error: activityError } = await supabase.rpc("get_game_activity", { p_code: code });
+  if (activityError) {
+    console.error("get_game_activity failed:", activityError.message);
+    return <GameUnavailable title="Game activity unavailable." message="Public game activity could not be loaded safely." />;
+  }
+  const activeActivity = (activityData ?? []) as Array<{ event_type?: string; created_at?: string }>;
+  if (activeActivity.some((event) => !["thief_hide", "police_investigation", "police_accusation", "round_finished"].includes(event.event_type ?? "") || typeof event.created_at !== "string")) {
+    return <GameUnavailable title="Game activity unavailable." message="The server returned invalid activity data." />;
+  }
+  const activityEvents = activeActivity as Array<{
+    event_type: "thief_hide" | "police_investigation" | "police_accusation" | "round_finished";
+    created_at: string;
+  }>;
 
   return (
     <div className="mx-auto w-full max-w-4xl px-3 py-5 sm:px-6 sm:py-8">
-      <RoomGameRealtime roomId={first.room_id} code={code} />
+      <RoomGameRealtime roomId={first.room_id} />
 
       <section className="overflow-hidden border-2 border-[var(--foreground)] bg-[var(--panel)] shadow-[6px_6px_0_var(--foreground)]">
         <header className="border-b-2 border-[var(--foreground)] px-4 py-4 sm:px-6">
@@ -613,6 +649,8 @@ export default async function ThiefPolicePeopleRoomPage({
               endsAt={timerEndsAt}
               initialInvestigation={investigationState}
             />
+
+            <GameActivity events={activityEvents} />
 
             {role === "thief" && thiefHideState ? (
               <ThiefHide
