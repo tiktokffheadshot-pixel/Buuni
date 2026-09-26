@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { playAgain } from "@/app/room/actions";
 import { RoleReveal, type GameRole } from "@/components/role-reveal";
 import { PoliceInvestigation } from "@/components/police-investigation";
+import { ThiefHide } from "@/components/thief-hide";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { RoundResultRealtime } from "@/components/round-result-realtime";
 import { RoundTimer } from "@/components/round-timer";
@@ -136,11 +137,13 @@ function resultCopy(result: RoundResultRow["result"], accusedUsername: string | 
 function RoundResult({
   rows,
   reward,
+  roomId,
   code,
   playAgainMessage,
 }: {
   rows: RoundResultRow[];
   reward: RoundRewardRow;
+  roomId: string;
   code: string;
   playAgainMessage: string | null;
 }) {
@@ -149,6 +152,7 @@ function RoundResult({
 
   return (
     <div className="mx-auto w-full max-w-4xl px-3 py-5 sm:px-6 sm:py-8">
+      <RoundResultRealtime roomId={roomId} code={code} />
       <section className="overflow-hidden border-2 border-[var(--foreground)] bg-[var(--panel)] shadow-[6px_6px_0_var(--foreground)]">
         <header className="border-b-2 border-[var(--foreground)] px-4 py-6 text-center sm:px-6 sm:py-8">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--accent-dark)]">
@@ -411,6 +415,7 @@ export default async function ThiefPolicePeopleRoomPage({
       <RoundResult
         rows={resultRows}
         reward={rewardData[0] as RoundRewardRow}
+        roomId={first.room_id}
         code={code}
         playAgainMessage={playAgainMessage}
       />
@@ -456,6 +461,45 @@ export default async function ThiefPolicePeopleRoomPage({
   }
 
   const role: GameRole = roleValue;
+
+  let thiefHideState: { used: boolean; hiddenUntil: string | null } | null = null;
+
+  if (role === "thief") {
+    const { data: hideData, error: hideError } = await supabase.rpc(
+      "get_my_thief_hide",
+      { p_code: code },
+    );
+
+    if (hideError) {
+      console.error("get_my_thief_hide failed:", hideError.message);
+      return (
+        <GameUnavailable
+          title="Thief action unavailable."
+          message="Your Hide state could not be loaded safely."
+        />
+      );
+    }
+
+    const hideRow = hideData?.[0] as
+      | { used?: boolean; hidden_until?: string | null }
+      | undefined;
+
+    if (!hideRow || typeof hideRow.used !== "boolean") {
+      return (
+        <GameUnavailable
+          title="Thief action unavailable."
+          message="The server did not return a valid Hide state."
+        />
+      );
+    }
+
+    thiefHideState = {
+      used: hideRow.used,
+      hiddenUntil:
+        typeof hideRow.hidden_until === "string" ? hideRow.hidden_until : null,
+    };
+  }
+
   const roleUi = ROLE_UI[role];
   const playerCount = rows.length;
   const playerNames = rows.map((row) => row.username);
@@ -544,6 +588,14 @@ export default async function ThiefPolicePeopleRoomPage({
               currentUsername={currentUsername}
               endsAt={timerEndsAt}
             />
+
+            {role === "thief" && thiefHideState ? (
+              <ThiefHide
+                code={code}
+                used={thiefHideState.used}
+                hiddenUntil={thiefHideState.hiddenUntil}
+              />
+            ) : null}
           </main>
 
           <aside className="p-4 sm:p-6">

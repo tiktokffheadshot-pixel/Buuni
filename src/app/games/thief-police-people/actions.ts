@@ -196,6 +196,61 @@ export async function accusePlayer(
   };
 }
 
+export async function hideThief(
+  code: string,
+): Promise<{ ok: true; hiddenUntil: string } | { ok: false; message: string }> {
+  const normalizedCode = code.trim().toUpperCase();
+
+  if (!/^[A-Z0-9]{6}$/.test(normalizedCode)) {
+    return { ok: false, message: "Invalid room code." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, message: "Please sign in again." };
+  }
+
+  const { data, error } = await supabase.rpc("hide_thief", {
+    p_code: normalizedCode,
+  });
+
+  if (error) {
+    const lower = (error.message ?? "").toLowerCase();
+
+    if (lower.includes("not in this room")) {
+      return { ok: false, message: "You are not a member of this room." };
+    }
+    if (lower.includes("room is not playing")) {
+      return { ok: false, message: "The game is not currently active." };
+    }
+    if (lower.includes("round has expired")) {
+      return { ok: false, message: "The round has expired." };
+    }
+    if (lower.includes("only thief")) {
+      return { ok: false, message: "Only the Thief can use Hide." };
+    }
+    if (lower.includes("hide already used")) {
+      return { ok: false, message: "Hide has already been used this round." };
+    }
+
+    console.error("hide_thief failed:", error.message);
+    return { ok: false, message: "Hide could not be completed." };
+  }
+
+  const row = data?.[0] as { hidden_until?: string } | undefined;
+
+  if (!row || typeof row.hidden_until !== "string") {
+    console.error("hide_thief returned invalid result.");
+    return { ok: false, message: "Hide returned invalid data." };
+  }
+
+  return { ok: true, hiddenUntil: row.hidden_until };
+}
+
 export async function resolveExpiredRound(
   code: string,
 ): Promise<ResolveExpiredResult> {

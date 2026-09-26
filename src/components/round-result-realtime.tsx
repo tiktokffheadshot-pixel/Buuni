@@ -5,13 +5,25 @@ import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
 
-export function RoundResultRealtime({ roomId, code }: { roomId: string; code: string }) {
+export function RoundResultRealtime({
+  roomId,
+  code,
+}: {
+  roomId: string;
+  code: string;
+}) {
   const router = useRouter();
   const handledRef = useRef(false);
 
   useEffect(() => {
     let active = true;
     const supabase = createClient();
+
+    const navigateToWaiting = () => {
+      if (!active || handledRef.current) return;
+      handledRef.current = true;
+      router.replace("/room/" + code);
+    };
 
     const channel = supabase
       .channel("round-result-" + roomId)
@@ -27,16 +39,40 @@ export function RoundResultRealtime({ roomId, code }: { roomId: string; code: st
         (payload) => {
           if (!active || handledRef.current) return;
 
-          if (payload.new?.status === "finished") {
+          if (payload.new?.status === "waiting") {
+            navigateToWaiting();
+          } else if (payload.new?.status === "playing") {
             handledRef.current = true;
-            router.refresh();
-          } else if (payload.new?.status === "waiting") {
-            handledRef.current = true;
-            router.replace("/room/" + code);
+            router.replace("/games/thief-police-people/room/" + code);
           }
         },
       )
-      .subscribe();
+      .subscribe((status, error) => {
+        if (!active) return;
+
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          console.error("round-result Realtime subscription failed:", error);
+        }
+      });
+
+    const checkCurrentRoomStatus = async () => {
+      const { data, error } = await supabase
+        .from("rooms")
+        .select("status")
+        .eq("id", roomId)
+        .maybeSingle();
+
+      if (!active || handledRef.current || error) return;
+
+      if (data?.status === "waiting") {
+        navigateToWaiting();
+      } else if (data?.status === "playing") {
+        handledRef.current = true;
+        router.replace("/games/thief-police-people/room/" + code);
+      }
+    };
+
+    void checkCurrentRoomStatus();
 
     return () => {
       active = false;

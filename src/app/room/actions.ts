@@ -133,6 +133,12 @@ export async function playAgain(formData: FormData) {
   const { data, error } = await supabase.rpc("play_again", { p_code: code });
 
   if (error) {
+    const lowerMessage = (error.message ?? "").toLowerCase();
+
+    if (lowerMessage.includes("room is not finished")) {
+      redirect("/room/" + code);
+    }
+
     const message = roomErrorMessage(error.message ?? "Unable to start another game.");
     console.error(rpcError("play_again", error));
     redirect("/games/thief-police-people/room/" + code + "?play_again_error=" + encodeURIComponent(message));
